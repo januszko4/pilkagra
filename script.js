@@ -20,6 +20,7 @@ class Game {
         this.pointSize = 5;
     }
     run() {
+        console.clear();
 
         this.getWidthAndHeightTilesFromUser();
         this.initializeCanvas();
@@ -137,7 +138,26 @@ class Player {
             }
         });
     }
-
+    TryTogoToCursorPoint(closestPoint) {
+        let closestPointXcoord = closestPoint.getXCoord();
+        let closestPointYcoord = closestPoint.getYCoord();
+        
+        // lord forgive me for my if statements...
+        // goes to the point only if the point is around the player
+        // change this comment to a function later
+        if ((Math.abs(this.x - closestPointXcoord) == 1 && Math.abs(this.y - closestPointYcoord) == 1) ||  // Diagonal
+        (Math.abs(this.x - closestPointXcoord) == 1 && this.y === closestPointYcoord) ||  // Horizontal
+        (Math.abs(this.y - closestPointYcoord) == 1 && this.x === closestPointXcoord))  // Vertical
+        {
+            this.setXcoord(closestPointXcoord);
+            this.setYcoord(closestPointYcoord);
+            console.log(`Went to closest point to the cursor: ${closestPointXcoord}, ${closestPointYcoord}`);
+        }
+        else{
+            console.log(`Point [${closestPointXcoord}, ${closestPointYcoord}] too far!`)
+        }
+    }
+    
     TryToMoveUp() {
         const point = this.findPointWithSameCoords();
         if (this.checkIfCanMoveUp(point)) {
@@ -228,10 +248,6 @@ class Player {
     setYcoord(newYcoord) {
         this.y = newYcoord;
     }
-    setCoords(newXcoord, newYcoord) {
-        this.x = newXcoord;
-        this.y = newYcoord;
-    }
 }
 
 class Mouse {
@@ -249,7 +265,7 @@ class Mouse {
                 console.log(`LMB clicked at: ${this.x}, ${this.y}`);
                 
                 const closestPoint = this.findClosestPoint();
-                this.player.setCoords(closestPoint.getXCoord(), closestPoint.getYCoord());
+                this.player.TryTogoToCursorPoint(closestPoint);
             }
         });
     }
@@ -276,7 +292,7 @@ class Mouse {
             }
         });
 
-        console.log("Closest point to the cursor:", closestPoint);
+        // console.log("Closest point to the cursor:", closestPoint);
         return closestPoint;
     }
 }
