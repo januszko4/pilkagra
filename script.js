@@ -16,6 +16,7 @@ class Game {
         this.WINDOW_WIDTH_TILES;
         this.WINDOW_HEIGHT_TILES;
 
+        this.linesArr = [new Line(this.ctx, 3, 3, 4, 4, this.TILE_SIZE_PX)];
         this.points2dGrid = [];
         this.pointSize = 5;
     }
@@ -27,24 +28,27 @@ class Game {
         
         this.createPoints2dGrid();
 
-        this.player = new Player(this.ctx, this.canvas, this.points2dGrid, this.WINDOW_WIDTH_TILES, this.WINDOW_HEIGHT_TILES, this.TILE_SIZE_PX);
+        this.player = new Player(this.ctx, this.canvas, this.points2dGrid, this.WINDOW_WIDTH_TILES, this.WINDOW_HEIGHT_TILES, this.TILE_SIZE_PX, this);
         this.player.addMovementListenerToCanvas();
         
-        let mouse = new Mouse(this.canvas, this.points2dGrid, this.TILE_SIZE_PX, this.player);
-        
+        let mouse = new Mouse(this.ctx, this.canvas, this.points2dGrid, this.TILE_SIZE_PX, this.player, this);
+        //  maybe make a function to add mouse event listeners
+        // and call it here
+
         /* LOOP */
 
-        this.drawingLoop();
+        this.gameLoop();
     }
 
-    drawingLoop() {
+    gameLoop() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     
         this.drawLineGrid();
         this.drawPointsFromGrid2d();
+        this.drawLinesFromLinesArr();
         this.player.draw();
     
-        requestAnimationFrame(() => this.drawingLoop());
+        requestAnimationFrame(() => this.gameLoop());
     }
 
     getWidthAndHeightTilesFromUser() {
@@ -56,7 +60,14 @@ class Game {
         this.canvas.height = this.WINDOW_HEIGHT_TILES * this.TILE_SIZE_PX;
     }
 
-
+    drawLinesFromLinesArr() {
+        this.linesArr.forEach((lineInstance) => {
+            lineInstance.draw();
+        });
+    }
+    addLineToLineArr(lineInstance) {
+        this.linesArr.push(lineInstance);
+    }
     createPoints2dGrid() {
         for (let y = 1; y < this.WINDOW_HEIGHT_TILES; y++) {
             for (let x = 1; x < this.WINDOW_WIDTH_TILES; x++) {
@@ -100,7 +111,27 @@ class Game {
     }
 }
 
+class Line {
+    constructor(ctx, x1Tiles, y1Tiles, x2Tiles, y2Tiles, TILE_SIZE_PX) {
+        this.ctx = ctx;
+        this.TILE_SIZE_PX = TILE_SIZE_PX;
 
+        this.x1Tiles = x1Tiles;
+        this.y1Tiles = y1Tiles;
+        this.x2Tiles = x2Tiles;
+        this.y2Tiles= y2Tiles;
+    }
+    draw() {
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeStyle = "blue";
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.x1Tiles * this.TILE_SIZE_PX, this.y1Tiles * this.TILE_SIZE_PX);
+        this.ctx.lineTo(this.x2Tiles * this.TILE_SIZE_PX, this.y2Tiles * this.TILE_SIZE_PX);
+        this.ctx.stroke();
+    }
+
+}
 
 class Player {
     constructor(ctx, canvas, points2dGrid, WINDOW_WIDTH_TILES, WINDOW_HEIGHT_TILES, TILE_SIZE_PX) {
@@ -135,16 +166,22 @@ class Player {
                 case "d":
                     this.TryToMoveRight();
                     break;
+                case "c":
+                    console.clear();
+                    break;
             }
         });
     }
     TryTogoToCursorPoint(closestPoint) {
         let closestPointXcoord = closestPoint.getXCoord();
         let closestPointYcoord = closestPoint.getYCoord();
+
+        if ((this.x == closestPointXcoord) && (this.y == closestPointYcoord)) {
+            console.log("Player at the same position as the closest point.");
+            return;
+        }
         
         // lord forgive me for my if statements...
-        // goes to the point only if the point is around the player
-        // change this comment to a function later
         if ((Math.abs(this.x - closestPointXcoord) == 1 && Math.abs(this.y - closestPointYcoord) == 1) ||  // Diagonal
         (Math.abs(this.x - closestPointXcoord) == 1 && this.y === closestPointYcoord) ||  // Horizontal
         (Math.abs(this.y - closestPointYcoord) == 1 && this.x === closestPointXcoord))  // Vertical
@@ -251,7 +288,10 @@ class Player {
 }
 
 class Mouse {
-    constructor(canvas, points2dGrid, TILE_SIZE_PX, player) {
+    constructor(ctx, canvas, points2dGrid, TILE_SIZE_PX, player, game) {
+        this.ctx = ctx;
+        this.game = game;
+
         this.player = player;
         this.canvas = canvas;
         this.x = 0;
@@ -259,17 +299,17 @@ class Mouse {
         this.points2dGrid = points2dGrid;
         this.TILE_SIZE_PX = TILE_SIZE_PX;
 
-        document.addEventListener("mousedown", (e) => {
-            if (e.button == 0) { // LMB
-                this.setMouseXandY(e, this.canvas);
-                console.log(`LMB clicked at: ${this.x}, ${this.y}`);
-                
-                const closestPoint = this.findClosestPoint();
-                this.player.TryTogoToCursorPoint(closestPoint);
-            }
+        document.addEventListener("mousemove", (e) => {
+            this.setMouseXandY(e, this.canvas);
+        });
+
+        document.addEventListener("click", (e) => {
+            console.log(`Mouse clicked at: ${this.x}, ${this.y}`);
+            
+            let closestPoint = this.findClosestPoint();
+            this.player.TryTogoToCursorPoint(closestPoint);
         });
     }
-    
     setMouseXandY(event, canvas) {
         const rect = canvas.getBoundingClientRect(); // Get the canvas position
         
@@ -292,9 +332,24 @@ class Mouse {
             }
         });
 
-        // console.log("Closest point to the cursor:", closestPoint);
         return closestPoint;
     }
+}
+
+class RestrictionX {
+    static draw(ctx, x, y, TILE_SIZE_PX) {
+        ctx.strokeStyle = "blue"; // Color of the X
+        ctx.lineWidth = 20;       // Line thickness to make it bold
+
+        // Draw the X shape (diagonal lines crossing each other)
+        ctx.beginPath();
+        ctx.moveTo(x * TILE_SIZE_PX, y * TILE_SIZE_PX); // Start point of first diagonal
+        ctx.lineTo((x + 1) * TILE_SIZE_PX, (y + 1) * TILE_SIZE_PX); // End point of first diagonal
+        ctx.moveTo((x + 1) * TILE_SIZE_PX, y * TILE_SIZE_PX); // Start point of second diagonal
+        ctx.lineTo(x * TILE_SIZE_PX, (y + 1) * TILE_SIZE_PX); // End point of second diagonal
+        ctx.stroke();
+    }
+
 }
 
 
