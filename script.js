@@ -16,7 +16,7 @@ class Game {
         this.WINDOW_WIDTH_TILES;
         this.WINDOW_HEIGHT_TILES;
 
-        this.linesArr = [new Line(this.ctx, 3, 3, 4, 4, this.TILE_SIZE_PX)];
+        this.linesArr = [];
         this.points2dGrid = [];
         this.pointSize = 5;
     }
@@ -28,10 +28,18 @@ class Game {
         
         this.createPoints2dGrid();
 
-        this.player = new Player(this.ctx, this.canvas, this.points2dGrid, this.WINDOW_WIDTH_TILES, this.WINDOW_HEIGHT_TILES, this.TILE_SIZE_PX, this);
-        this.player.addMovementListenerToCanvas();
+        this.player = new Player(this, this.ctx, this.canvas, this.points2dGrid, this.WINDOW_WIDTH_TILES, this.WINDOW_HEIGHT_TILES, this.TILE_SIZE_PX, this);
         
         this.mouse = new Mouse(this.ctx, this.canvas, this.points2dGrid, this.TILE_SIZE_PX, this.player, this);
+        this.mouse.addMoveEventToCanvas();
+        this.mouse.addClickEventToCanvas();
+
+        // clear console
+        document.addEventListener("keydown", (e) => {
+            if (e.key == "c") {
+                console.clear();
+            }
+        });
 
         /* LOOP */
         this.gameLoop();
@@ -77,6 +85,13 @@ class Game {
             }
         }
         console.log(this.points2dGrid);
+    }
+    lineExists(x1, y1, x2, y2) {
+        // Check both directions: (x1, y1) -> (x2, y2) and (x2, y2) -> (x1, y1)
+        return this.linesArr.some(line => 
+            (line.x1Tiles === x1 && line.y1Tiles === y1 && line.x2Tiles === x2 && line.y2Tiles === y2) ||
+            (line.x1Tiles === x2 && line.y1Tiles === y2 && line.x2Tiles === x1 && line.y2Tiles === y1)
+        );
     }
     drawPointsFromGrid2d(){
         this.points2dGrid.forEach((point) => {
@@ -131,7 +146,7 @@ class Line {
 }
 
 class Player {
-    constructor(ctx, canvas, points2dGrid, WINDOW_WIDTH_TILES, WINDOW_HEIGHT_TILES, TILE_SIZE_PX) {
+    constructor(game, ctx, canvas, points2dGrid, WINDOW_WIDTH_TILES, WINDOW_HEIGHT_TILES, TILE_SIZE_PX) {
         this.ctx = ctx;
         this.canvas = canvas
         this.TILE_SIZE_PX = TILE_SIZE_PX
@@ -143,94 +158,53 @@ class Player {
 
         this.color = "red";
         this.sizePx = 7;
+
+        this.game = game;
+
     }
     draw() {
        this.ctx.fillStyle = this.color; 
        this.ctx.fillRect((this.x * this.TILE_SIZE_PX) - 0.5 * this.sizePx, (this.y * this.TILE_SIZE_PX) - 0.5 * this.sizePx, this.sizePx, this.sizePx);
     }
-    addMovementListenerToCanvas() {
-        document.addEventListener("keydown", (e) => {
-            switch(e.key) {
-                case "w":
-                    this.TryToMoveUp();
-                    break;
-                case "s":
-                    this.TryToMoveDown();
-                    break;
-                case "a":
-                    this.TryToMoveLeft();
-                    break;
-                case "d":
-                    this.TryToMoveRight();
-                    break;
-                case "c":
-                    console.clear();
-                    break;
-            }
-        });
-    }
-    TryTogoToCursorPoint(closestPoint) {
+    TryToGoToCursorPointAndAddLine(closestPoint) {
         let closestPointXcoord = closestPoint.getXCoord();
         let closestPointYcoord = closestPoint.getYCoord();
 
         if ((this.x == closestPointXcoord) && (this.y == closestPointYcoord)) {
-            console.log("Player at the same position as the closest point.");
+            console.log("Player at the same position as the closest point to the cursor.");
             return;
         }
         
-        // lord forgive me for my if statements...
-        if ((Math.abs(this.x - closestPointXcoord) == 1 && Math.abs(this.y - closestPointYcoord) == 1) ||  // Diagonal
-        (Math.abs(this.x - closestPointXcoord) == 1 && this.y === closestPointYcoord) ||  // Horizontal
-        (Math.abs(this.y - closestPointYcoord) == 1 && this.x === closestPointXcoord))  // Vertical
-        {
-            this.setXcoord(closestPointXcoord);
-            this.setYcoord(closestPointYcoord);
-            console.log(`Went to closest point to the cursor: ${closestPointXcoord}, ${closestPointYcoord}`);
+        if (this.checkIsPointAdjacent(closestPointXcoord, closestPointYcoord)) {
+            let lineExists = this.game.lineExists(this.x, this.y, closestPointXcoord, closestPointYcoord);
+            
+            if(lineExists) {
+                console.log(`Line already exists, just moving player to the closest point ${closestPointXcoord}, ${closestPointYcoord}`);
+                this.setXcoord(closestPointXcoord);
+                this.setYcoord(closestPointYcoord);
+                return;
+            }
+            else{
+                let lineInstance = new Line(this.ctx, this.x, this.y, closestPointXcoord, closestPointYcoord, this.TILE_SIZE_PX);
+                this.game.addLineToLineArr(lineInstance);
+
+                this.setXcoord(closestPointXcoord);
+                this.setYcoord(closestPointYcoord);
+                console.log(`Created line and went to closest point to the cursor: ${closestPointXcoord}, ${closestPointYcoord}`);    
+            }
         }
         else{
             console.log(`Point [${closestPointXcoord}, ${closestPointYcoord}] too far!`)
         }
     }
-    
-    TryToMoveUp() {
-        const point = this.findPointWithSameCoords();
-        if (this.checkIfCanMoveUp(point)) {
-            this.moveUp();
-            console.log("Moved up!");
+    checkIsPointAdjacent(closestPointXcoord, closestPointYcoord) {
+        if ((Math.abs(this.x - closestPointXcoord) == 1 && Math.abs(this.y - closestPointYcoord) == 1) ||  // Diagonal
+        (Math.abs(this.x - closestPointXcoord) == 1 && this.y === closestPointYcoord) ||  // Horizontal
+        (Math.abs(this.y - closestPointYcoord) == 1 && this.x === closestPointXcoord))  // Vertical
+        {
+            return true;
         }
-        else {
-            console.log("You cannot move up!");
-        }
-    }
-    TryToMoveDown() {
-        const point = this.findPointWithSameCoords();
-        if (this.checkIfCanMoveDown(point)) {
-            this.moveDown();
-            console.log("Moved down!");
-        }
-        else {
-            console.log("You cannot move down!");
-        }
-    }
-    TryToMoveLeft() {
-        const point = this.findPointWithSameCoords();
-        if (this.checkIfCanMoveLeft(point)) {
-            this.moveLeft();
-            console.log("Moved left!");
-        }
-        else {
-            console.log("You cannot move left!");
-        }
-    }
-    TryToMoveRight() {
-        const point = this.findPointWithSameCoords();
-        if (this.checkIfCanMoveRight(point)) {
-            this.moveRight();
-            console.log("Moved right!");
-        }
-        else {
-            console.log("You cannot move right!");
-        }
+        return false;
     }
 
     checkIfCanMoveUp(point) {
@@ -295,16 +269,19 @@ class Mouse {
         this.y = 0;
         this.points2dGrid = points2dGrid;
         this.TILE_SIZE_PX = TILE_SIZE_PX;
-
+    }
+    addMoveEventToCanvas() {
         this.canvas.addEventListener("mousemove", (e) => {
             this.setMouseXandY(e, this.canvas);
         });
-
+    }
+    addClickEventToCanvas() {
         this.canvas.addEventListener("click", () => {
-            console.log(`Mouse clicked at: ${this.x}, ${this.y}`);
+            // for debugging purposes
+            // console.log(`Mouse clicked at: ${this.x}, ${this.y}`);
             
             let closestPoint = this.findClosestPoint();
-            this.player.TryTogoToCursorPoint(closestPoint);
+            this.player.TryToGoToCursorPointAndAddLine(closestPoint);
         });
     }
     setMouseXandY(event, canvas) {
