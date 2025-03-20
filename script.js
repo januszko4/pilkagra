@@ -31,12 +31,9 @@ class Game {
         this.player = new Player(this.ctx, this.canvas, this.points2dGrid, this.WINDOW_WIDTH_TILES, this.WINDOW_HEIGHT_TILES, this.TILE_SIZE_PX, this);
         this.player.addMovementListenerToCanvas();
         
-        let mouse = new Mouse(this.ctx, this.canvas, this.points2dGrid, this.TILE_SIZE_PX, this.player, this);
-        //  maybe make a function to add mouse event listeners
-        // and call it here
+        this.mouse = new Mouse(this.ctx, this.canvas, this.points2dGrid, this.TILE_SIZE_PX, this.player, this);
 
         /* LOOP */
-
         this.gameLoop();
     }
 
@@ -299,11 +296,11 @@ class Mouse {
         this.points2dGrid = points2dGrid;
         this.TILE_SIZE_PX = TILE_SIZE_PX;
 
-        document.addEventListener("mousemove", (e) => {
+        this.canvas.addEventListener("mousemove", (e) => {
             this.setMouseXandY(e, this.canvas);
         });
 
-        document.addEventListener("click", (e) => {
+        this.canvas.addEventListener("click", () => {
             console.log(`Mouse clicked at: ${this.x}, ${this.y}`);
             
             let closestPoint = this.findClosestPoint();
