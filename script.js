@@ -59,6 +59,9 @@ class Game {
     getWidthAndHeightTilesFromUser() {
         this.WINDOW_WIDTH_TILES = parseInt(prompt("Pass width (tiles, odd):"));
         this.WINDOW_HEIGHT_TILES = parseInt(prompt("Pass height (tiles, odd):"));
+        if (!WindowSizeValidator.validateWindowSizeAlert(this.WINDOW_WIDTH_TILES, this.WINDOW_HEIGHT_TILES)) {
+            this.getWidthAndHeightTilesFromUser();
+        }
     }
     initializeCanvas() {
         this.canvas.width = this.WINDOW_WIDTH_TILES * this.TILE_SIZE_PX;
@@ -74,16 +77,33 @@ class Game {
         this.linesArr.push(lineInstance);
     }
     createPoints2dGrid() {
-        for (let y = 1; y < this.WINDOW_HEIGHT_TILES; y++) {
-            for (let x = 1; x < this.WINDOW_WIDTH_TILES; x++) {
+        const centerY = Math.floor(this.WINDOW_HEIGHT_TILES / 2); // Center height of the grid
+    
+        for (let y = 1; y < this.WINDOW_HEIGHT_TILES; y++) { // Skip top and bottom edges
+            for (let x = 1; x < this.WINDOW_WIDTH_TILES; x++) { // Skip left and right edges
                 const UP = (y > 1);
                 const DOWN = (y < this.WINDOW_HEIGHT_TILES - 1);
                 const LEFT = (x > 1);
                 const RIGHT = (x < this.WINDOW_WIDTH_TILES - 1);
-                
-                this.points2dGrid.push(new Point(UP, DOWN, LEFT, RIGHT, x, y));
+    
+                // Add goalies at the center height (2 points tall) on the left and right edges
+                const isGoal = 
+                    (x === 0 && (y === centerY || y === centerY - 1)) || // Left goalie
+                    (x === this.WINDOW_WIDTH_TILES && (y === centerY || y === centerY - 1)); // Right goalie
+    
+                // Only add regular points if not on the edges
+                if (!isGoal) {
+                    this.points2dGrid.push(new Point(UP, DOWN, LEFT, RIGHT, x, y, false));
+                }
             }
         }
+    
+        // Add goal points explicitly at the edges
+        this.points2dGrid.push(new Point(false, true, false, true, 0, centerY, true)); // Left goalie (top)
+        this.points2dGrid.push(new Point(true, false, false, true, 0, centerY - 1, true)); // Left goalie (bottom)
+        this.points2dGrid.push(new Point(false, true, true, false, this.WINDOW_WIDTH_TILES, centerY, true)); // Right goalie (top)
+        this.points2dGrid.push(new Point(true, false, true, false, this.WINDOW_WIDTH_TILES, centerY - 1, true)); // Right goalie (bottom)
+    
         console.log(this.points2dGrid);
     }
     lineExists(x1, y1, x2, y2) {
@@ -120,6 +140,16 @@ class Game {
             this.ctx.lineTo(this.canvas.width, y * this.TILE_SIZE_PX);
             this.ctx.stroke();
         }
+    }
+}
+
+class WindowSizeValidator {
+    static validateWindowSizeAlert(windowWidth, windowHeight) {
+        if (windowWidth % 2 != 0 || windowHeight % 2 != 0) {
+            alert("Window width and height must be even numbers!");
+            return false;
+        }
+        return true;
     }
 }
 
@@ -328,7 +358,7 @@ class RestrictionX {
 
 
 class Point {
-    constructor(UP, DOWN, LEFT, RIGHT, x, y) {
+    constructor(UP, DOWN, LEFT, RIGHT, x, y, isGoal) {
         this.UP = UP;
         this.DOWN = DOWN;
         this.LEFT = LEFT;
@@ -337,7 +367,9 @@ class Point {
         this.y = y;
 
         this.pointSize = 5;
-        this.color = "green";
+
+        this.isGoal = isGoal;
+        this.color = isGoal ? "yellow" : "green";
     }
     getUp() {
         return this.UP;
@@ -363,6 +395,9 @@ class Point {
     }
     getPointColor() {
         return this.color;
+    }
+    isGoalPoint() {
+        return this.isGoal;
     }
 }
 
