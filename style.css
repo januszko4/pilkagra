@@ -19,6 +19,19 @@ p {
     flex-direction: row;
     gap: 10px;
 }
+#move-ctn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 10px;
+}
+#move {
+    visibility: hidden;
+}
+#game-window * {
+    visibility: hidden;
+}
 button {
     text-align: center;
 }

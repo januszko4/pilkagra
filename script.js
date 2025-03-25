@@ -19,17 +19,23 @@ class Game {
         this.linesArr = [];
         this.points2dGrid = [];
         this.pointSize = 5;
+
+        this.player1Move = true;
+        this.player2Move = false;
     }
     run() {
         console.clear();
 
         this.getWidthAndHeightTilesFromUser();
-        this.initializeCanvas();
+        
+        this.initializeScreen();
+        
         
         this.createPoints2dGrid();
 
         this.player = new Player(this, this.ctx, this.canvas, this.points2dGrid, this.WINDOW_WIDTH_TILES, this.WINDOW_HEIGHT_TILES, this.TILE_SIZE_PX, this);
-        
+        this.updatePlayerTurnParagraph();
+
         this.mouse = new Mouse(this.ctx, this.canvas, this.points2dGrid, this.TILE_SIZE_PX, this.player, this);
         this.mouse.addMoveEventToCanvas();
         this.mouse.addClickEventToCanvas();
@@ -44,7 +50,6 @@ class Game {
         /* LOOP */
         this.gameLoop();
     }
-
     gameLoop() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     
@@ -55,15 +60,31 @@ class Game {
     
         requestAnimationFrame(() => this.gameLoop());
     }
-
+    updatePlayerTurnParagraph() {
+        document.getElementById("move").innerHTML = this.player1Move ? "Player 1's move" : "Player 2's move";
+    }
+    initializeScreen() {
+        this.initializeCanvas();
+        this.initializeMoveCtn();
+    }
     getWidthAndHeightTilesFromUser() {
-        this.WINDOW_WIDTH_TILES = parseInt(prompt("Pass width (tiles, odd):"));
-        this.WINDOW_HEIGHT_TILES = parseInt(prompt("Pass height (tiles, odd):"));
+        this.WINDOW_WIDTH_TILES = parseInt(prompt("Pass width (tiles, even):"));
+        this.WINDOW_HEIGHT_TILES = parseInt(prompt("Pass height (tiles, even):"));
         if (!WindowSizeValidator.validateWindowSizeAlert(this.WINDOW_WIDTH_TILES, this.WINDOW_HEIGHT_TILES)) {
             this.getWidthAndHeightTilesFromUser();
         }
     }
+    initializeMoveCtn() {
+        const children = document.querySelectorAll("#move-ctn > *"); // Select all direct children of #move-ctn
+        children.forEach((child) => {
+            child.style.visibility = "visible"; // Set visibility to visible
+        });
+    }
     initializeCanvas() {
+        document.querySelector("canvas").style.visibility = "visible";
+        document.querySelectorAll("#game-window > p").forEach((p) => {
+            p.style.visibility = "visible";
+        });
         this.canvas.width = this.WINDOW_WIDTH_TILES * this.TILE_SIZE_PX;
         this.canvas.height = this.WINDOW_HEIGHT_TILES * this.TILE_SIZE_PX;
     }
@@ -77,6 +98,7 @@ class Game {
         this.linesArr.push(lineInstance);
     }
     createPoints2dGrid() {
+        // kill me
         const centerY = Math.floor(this.WINDOW_HEIGHT_TILES / 2); // Center height of the grid
     
         for (let y = 1; y < this.WINDOW_HEIGHT_TILES; y++) { // Skip top and bottom edges
@@ -101,18 +123,15 @@ class Game {
         // Add goal points explicitly at the edges
         this.points2dGrid.push(new Point(false, true, false, true, 0, centerY, true)); // Left goalie (top)
         this.points2dGrid.push(new Point(true, false, false, true, 0, centerY - 1, true)); // Left goalie (bottom)
+        this.points2dGrid.push(new Point(true, false, false, true, 0, centerY + 1, true)); // Left goalie (bottom)
+
         this.points2dGrid.push(new Point(false, true, true, false, this.WINDOW_WIDTH_TILES, centerY, true)); // Right goalie (top)
         this.points2dGrid.push(new Point(true, false, true, false, this.WINDOW_WIDTH_TILES, centerY - 1, true)); // Right goalie (bottom)
+        this.points2dGrid.push(new Point(true, false, true, false, this.WINDOW_WIDTH_TILES, centerY + 1, true)); // Right goalie (bottom)
     
         console.log(this.points2dGrid);
     }
-    lineExists(x1, y1, x2, y2) {
-        // Check both directions: (x1, y1) -> (x2, y2) and (x2, y2) -> (x1, y1)
-        return this.linesArr.some(line => 
-            (line.x1Tiles === x1 && line.y1Tiles === y1 && line.x2Tiles === x2 && line.y2Tiles === y2) ||
-            (line.x1Tiles === x2 && line.y1Tiles === y2 && line.x2Tiles === x1 && line.y2Tiles === y1)
-        );
-    }
+
     drawPointsFromGrid2d(){
         this.points2dGrid.forEach((point) => {
             this.ctx.fillStyle = point.getPointColor();
@@ -141,12 +160,25 @@ class Game {
             this.ctx.stroke();
         }
     }
+    switchPlayersTurn() {
+        this.player1Move = !this.player1Move;
+        this.player2Move = !this.player2Move;
+    }
+    getLinesArr() {
+        return this.linesArr
+    }
+    getPlayer1Move() {
+        return this.player1Move;
+    }
+    getPlayer2Move() {
+        return this.player2Move;
+    }
 }
 
 class WindowSizeValidator {
     static validateWindowSizeAlert(windowWidth, windowHeight) {
-        if (windowWidth % 2 != 0 || windowHeight % 2 != 0) {
-            alert("Window width and height must be even numbers!");
+        if (windowWidth % 2 != 0 || windowHeight % 2 == 0) {
+            alert("Window width must be even and height must be odd numbers!");
             return false;
         }
         return true;
@@ -171,6 +203,14 @@ class Line {
         this.ctx.moveTo(this.x1Tiles * this.TILE_SIZE_PX, this.y1Tiles * this.TILE_SIZE_PX);
         this.ctx.lineTo(this.x2Tiles * this.TILE_SIZE_PX, this.y2Tiles * this.TILE_SIZE_PX);
         this.ctx.stroke();
+    }
+    static checkIflineExists(game, x1, y1, x2, y2) {
+        // Check both directions: (x1, y1) -> (x2, y2) and (x2, y2) -> (x1, y1)
+        const exists = game.getLinesArr().some(line => 
+            (line.x1Tiles === x1 && line.y1Tiles === y1 && line.x2Tiles === x2 && line.y2Tiles === y2) ||
+            (line.x1Tiles === x2 && line.y1Tiles === y2 && line.x2Tiles === x1 && line.y2Tiles === y1)
+        );
+        return exists;
     }
 
 }
@@ -197,35 +237,101 @@ class Player {
        this.ctx.fillRect((this.x * this.TILE_SIZE_PX) - 0.5 * this.sizePx, (this.y * this.TILE_SIZE_PX) - 0.5 * this.sizePx, this.sizePx, this.sizePx);
     }
     TryToGoToCursorPointAndAddLine(closestPoint) {
-        let closestPointXcoord = closestPoint.getXCoord();
-        let closestPointYcoord = closestPoint.getYCoord();
-
-        if ((this.x == closestPointXcoord) && (this.y == closestPointYcoord)) {
-            console.log("Player at the same position as the closest point to the cursor.");
+        const targetX = closestPoint.getXCoord();
+        const targetY = closestPoint.getYCoord();
+    
+        if (!this.checkIfPlayerCanGoToPoint(targetX, targetY)) {
             return;
         }
-        
-        if (this.checkIsPointAdjacent(closestPointXcoord, closestPointYcoord)) {
-            let lineExists = this.game.lineExists(this.x, this.y, closestPointXcoord, closestPointYcoord);
-            
-            if(lineExists) {
-                console.log(`Line already exists, just moving player to the closest point ${closestPointXcoord}, ${closestPointYcoord}`);
-                this.setXcoord(closestPointXcoord);
-                this.setYcoord(closestPointYcoord);
-                return;
-            }
-            else{
-                let lineInstance = new Line(this.ctx, this.x, this.y, closestPointXcoord, closestPointYcoord, this.TILE_SIZE_PX);
-                this.game.addLineToLineArr(lineInstance);
+    
+        const hasLineFromTarget = this.game.linesArr.some(line =>
+            (line.x1Tiles === targetX && line.y1Tiles === targetY) ||
+            (line.x2Tiles === targetX && line.y2Tiles === targetY)
+        );
+    
+        this.moveToPointAndCreateLine(targetX, targetY);
+    
+        if (!hasLineFromTarget) {
+            this.game.switchPlayersTurn();
+            this.game.updatePlayerTurnParagraph();
+        } else {
+            console.log("Bounce! " + this.getCurrentPlayerThatsMoving() + " keeps their turn.");
+        }
+        if (!this.checkifAllAdjacentPointsHaveLines()) {
+            console.log(this.getCurrentPlayerThatsMoving() + " lost! No more moves available.");
+        }
+    }
+    getCurrentPlayerThatsMoving() {
+        return this.game.getPlayer1Move() ? "Player1" : "Player2" ; 
+    }
+    checkIfPlayerCanGoToPoint(targetX, targetY) {
+        if (this.checkIfPlayerAlreadyAtPoint(targetX, targetY)) {
+            console.log(`Point [${targetX}, ${targetY}] is the player's current position.`);
+            return false;
+        }
+    
+        if (!this.checkIsPointAdjacent(targetX, targetY)) {
+            console.log(`Point [${targetX}, ${targetY}] is not adjacent.`);
+            return false;
+        }
+    
+        if (Line.checkIflineExists(this.game, this.x, this.y, targetX, targetY)) {
+            console.log(`A line already exists between [${this.x}, ${this.y}] and [${targetX}, ${targetY}].`);
+            return false;
+        }
+        return true;
+    }
+    getValidAdjacentPoints() {
+        const potentialAdjacentPoints = [
+            { x: this.x - 1, y: this.y },     // Left
+            { x: this.x + 1, y: this.y },     // Right
+            { x: this.x, y: this.y - 1 },     // Up
+            { x: this.x, y: this.y + 1 },     // Down
+            { x: this.x - 1, y: this.y - 1 }, // Top-left diagonal
+            { x: this.x + 1, y: this.y - 1 }, // Top-right diagonal
+            { x: this.x - 1, y: this.y + 1 }, // Bottom-left diagonal
+            { x: this.x + 1, y: this.y + 1 }  // Bottom-right diagonal
+        ];
+    
+        // Filter out points that are out of bounds
+        const validAdjacentPoints = potentialAdjacentPoints.filter(point => 
+            point.x >= 1 && point.y >= 1 && // Ensure x and y are at least 1
+            point.x < this.game.WINDOW_WIDTH_TILES && 
+            point.y < this.game.WINDOW_HEIGHT_TILES
+        );
+    
+        return validAdjacentPoints;
+    }
+    checkifAllAdjacentPointsHaveLines() {
+        const adjacentPoints = this.getValidAdjacentPoints();
+    
+        console.log(`Checking lines from adjacent points to player at [${this.x}, ${this.y}]...`);
+    
+        // Check if all adjacent points have a line to the player's current position
+        const allPointsHaveLines = adjacentPoints.every(point => {
+            const hasLine = Line.checkIflineExists(this.game, point.x, point.y, this.x, this.y);
+            console.log(`Line from [${point.x}, ${point.y}] to [${this.x}, ${this.y}]: ${hasLine}`);
+            return hasLine;
+        });
+    
+        if (allPointsHaveLines) {
+            console.log("Can't move anywhere. All adjacent points have lines.");
+        }
+    }
 
-                this.setXcoord(closestPointXcoord);
-                this.setYcoord(closestPointYcoord);
-                console.log(`Created line and went to closest point to the cursor: ${closestPointXcoord}, ${closestPointYcoord}`);    
-            }
-        }
-        else{
-            console.log(`Point [${closestPointXcoord}, ${closestPointYcoord}] too far!`)
-        }
+    // Helper
+    checkIfPlayerAlreadyAtPoint(targetX, targetY) {
+        return this.x === targetX && this.y === targetY;
+    }
+    
+    moveToPointAndCreateLine(targetX, targetY) {
+        const lineInstance = new Line(this.ctx, this.x, this.y, targetX, targetY, this.TILE_SIZE_PX);
+        this.game.addLineToLineArr(lineInstance);
+    
+        this.setXcoord(targetX);
+        this.setYcoord(targetY);
+    
+        console.log(`Created line and moved to point [${targetX}, ${targetY}].`);
     }
     checkIsPointAdjacent(closestPointXcoord, closestPointYcoord) {
         if ((Math.abs(this.x - closestPointXcoord) == 1 && Math.abs(this.y - closestPointYcoord) == 1) ||  // Diagonal
@@ -236,45 +342,6 @@ class Player {
         }
         return false;
     }
-
-    checkIfCanMoveUp(point) {
-        if (point.getUp()){
-            return true;
-        }
-        return false;
-    }
-    checkIfCanMoveDown(point) {
-        if (point.getDown()){
-            return true;
-        }
-        return false;
-    }
-    checkIfCanMoveLeft(point) {
-        if (point.getLeft()){
-            return true;
-        }
-        return false;
-    }
-    checkIfCanMoveRight(point) {
-        if (point.getRight()){
-            return true;
-        }
-        return false;
-    }
-
-    moveUp() {
-        this.setYcoord(this.y - 1);
-    }
-    moveDown() {
-        this.setYcoord(this.y + 1);
-    }
-    moveLeft() {
-        this.setXcoord(this.x - 1);
-    }
-    moveRight() {
-        this.setXcoord(this.x + 1);
-    }
-
 
     findPointWithSameCoords() {
         return this.points2dGrid.find(point => point.getXCoord() == this.x && point.getYCoord() == this.y);
@@ -390,6 +457,7 @@ class Point {
     getYCoord() {
         return this.y;
     }
+    
     getPointSize() {
         return this.pointSize;
     }
