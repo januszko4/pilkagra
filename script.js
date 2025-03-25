@@ -257,9 +257,7 @@ class Player {
         } else {
             console.log("Bounce! " + this.getCurrentPlayerThatsMoving() + " keeps their turn.");
         }
-        if (!this.checkifAllAdjacentPointsHaveLines()) {
-            console.log(this.getCurrentPlayerThatsMoving() + " lost! No more moves available.");
-        }
+        this.checkifAllAdjacentPointsHaveLines();
     }
     getCurrentPlayerThatsMoving() {
         return this.game.getPlayer1Move() ? "Player1" : "Player2" ; 
@@ -307,7 +305,6 @@ class Player {
     
         console.log(`Checking lines from adjacent points to player at [${this.x}, ${this.y}]...`);
     
-        // Check if all adjacent points have a line to the player's current position
         const allPointsHaveLines = adjacentPoints.every(point => {
             const hasLine = Line.checkIflineExists(this.game, point.x, point.y, this.x, this.y);
             console.log(`Line from [${point.x}, ${point.y}] to [${this.x}, ${this.y}]: ${hasLine}`);
@@ -315,8 +312,10 @@ class Player {
         });
     
         if (allPointsHaveLines) {
-            console.log("Can't move anywhere. All adjacent points have lines.");
+            console.log(this.getCurrentPlayerThatsMoving() + " lost! No more moves available.");
+            return true;
         }
+        return false;
     }
 
     // Helper
