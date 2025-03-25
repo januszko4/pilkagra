@@ -177,8 +177,8 @@ class Game {
 
 class WindowSizeValidator {
     static validateWindowSizeAlert(windowWidth, windowHeight) {
-        if (windowWidth % 2 != 0 || windowHeight % 2 == 0) {
-            alert("Window width must be even and height must be odd numbers!");
+        if (windowWidth % 2 != 0 || windowHeight % 2 != 0) {
+            alert("Window width and height must be even numbers!");
             return false;
         }
         return true;
