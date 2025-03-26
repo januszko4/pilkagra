@@ -250,6 +250,10 @@ class Player {
         );
     
         this.moveToPointAndCreateLine(targetX, targetY);
+
+        if(this.checkIfPlayerWon(this.game, this.x, this.y, this.points2dGrid)){
+            return;
+        }
     
         if (!hasLineFromTarget) {
             this.game.switchPlayersTurn();
@@ -258,6 +262,15 @@ class Player {
             console.log("Bounce! " + this.getCurrentPlayerThatsMoving() + " keeps their turn.");
         }
         this.checkifAllAdjacentPointsHaveLines();
+    }
+    checkIfPlayerWon(game, x, y, points2dGrid) {
+        const point = points2dGrid.find(point => point.getXCoord() === x && point.getYCoord() === y);
+        if (point.isGoalPoint()) {
+            console.log(this.getCurrentPlayerThatsMoving() + " won!");
+            game.initializeScreen();
+            return true;
+        }
+        return false;
     }
     getCurrentPlayerThatsMoving() {
         return this.game.getPlayer1Move() ? "Player1" : "Player2" ; 
