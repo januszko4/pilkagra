@@ -61,6 +61,23 @@ class Game {
         requestAnimationFrame(() => this.gameLoop());
     }
     updatePlayerTurnParagraph() {
+        const player1Paragraph = document.getElementById("player1Paragraph");
+        const player2Paragraph = document.getElementById("player2Paragraph");
+    
+        if (this.player1Move) {
+            player1Paragraph.style.fontWeight = "bold";
+            player2Paragraph.style.fontWeight = "normal";
+            player1Paragraph.style.textDecoration = "underline";
+            player2Paragraph.style.textDecoration = "none";
+            
+        }
+        else {
+            player1Paragraph.style.fontWeight = "normal";
+            player2Paragraph.style.fontWeight = "bold";
+            player1Paragraph.style.textDecoration = "none";
+            player2Paragraph.style.textDecoration = "underline";
+        }
+    
         document.getElementById("move").innerHTML = this.player1Move ? "Player 1's move" : "Player 2's move";
     }
     initializeScreen() {
@@ -231,10 +248,25 @@ class Player {
 
         this.game = game;
 
+        this.player1Color = "red";
+        this.player2Color = "yellow";
+
     }
     draw() {
-       this.ctx.fillStyle = this.color; 
-       this.ctx.fillRect((this.x * this.TILE_SIZE_PX) - 0.5 * this.sizePx, (this.y * this.TILE_SIZE_PX) - 0.5 * this.sizePx, this.sizePx, this.sizePx);
+        // Set the fill color based on the current player's turn
+        if (this.getCurrentPlayerThatsMoving() == "Player1") {
+            this.ctx.fillStyle = this.player1Color;
+        } else {
+            this.ctx.fillStyle = this.player2Color;
+        }
+    
+        // Draw the player rectangle
+        this.ctx.fillRect(
+            (this.x * this.TILE_SIZE_PX) - 0.5 * this.sizePx,
+            (this.y * this.TILE_SIZE_PX) - 0.5 * this.sizePx,
+            this.sizePx,
+            this.sizePx
+        );
     }
     TryToGoToCursorPointAndAddLine(closestPoint) {
         const targetX = closestPoint.getXCoord();
