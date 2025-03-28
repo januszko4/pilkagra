@@ -158,24 +158,44 @@ class Game {
         });
     }
     drawLineGrid() {
-        this.ctx.strokeStyle = "white";
         this.ctx.lineWidth = 1;
-
+    
         // Draw vertical lines
         for (let x = 0; x <= this.WINDOW_WIDTH_TILES; x++) {
+            this.ctx.strokeStyle = "white";
             this.ctx.beginPath();
             this.ctx.moveTo(x * this.TILE_SIZE_PX, 0);
             this.ctx.lineTo(x * this.TILE_SIZE_PX, this.canvas.height);
             this.ctx.stroke();
         }
-
+    
         // Draw horizontal lines
         for (let y = 0; y <= this.WINDOW_HEIGHT_TILES; y++) {
+            this.ctx.strokeStyle = "white";
             this.ctx.beginPath();
             this.ctx.moveTo(0, y * this.TILE_SIZE_PX);
             this.ctx.lineTo(this.canvas.width, y * this.TILE_SIZE_PX);
             this.ctx.stroke();
         }
+    
+        // Draw yellow lines through the goals
+        const centerY = Math.floor(this.WINDOW_HEIGHT_TILES / 2);
+        this.ctx.strokeStyle = "yellow";
+        this.ctx.lineWidth = 2;
+    
+        this.ctx.lineWidth = 5;
+
+        // Left goal
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, centerY * this.TILE_SIZE_PX - this.TILE_SIZE_PX);
+        this.ctx.lineTo(0, centerY * this.TILE_SIZE_PX + this.TILE_SIZE_PX); // Extend slightly into the field
+        this.ctx.stroke();
+    
+        // Right goal
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.canvas.width, centerY * this.TILE_SIZE_PX - this.TILE_SIZE_PX);
+        this.ctx.lineTo(this.canvas.width, centerY * this.TILE_SIZE_PX + this.TILE_SIZE_PX); // Extend slightly into the field
+        this.ctx.stroke();
     }
     switchPlayersTurn() {
         this.player1Move = !this.player1Move;
@@ -281,24 +301,31 @@ class Player {
             (line.x2Tiles === targetX && line.y2Tiles === targetY)
         );
     
+        // Move to the point and create the line first
         this.moveToPointAndCreateLine(targetX, targetY);
-
-        if(this.checkIfPlayerWon(this.game, this.x, this.y, this.points2dGrid)){
+    
+        // Check if the player has won after moving
+        if (this.checkIfPlayerWon(this.game, this.x, this.y, this.points2dGrid)) {
             return;
         }
     
+        // Switch turns if no line exists from the target point
         if (!hasLineFromTarget) {
             this.game.switchPlayersTurn();
             this.game.updatePlayerTurnParagraph();
         } else {
             console.log("Bounce! " + this.getCurrentPlayerThatsMoving() + " keeps their turn.");
         }
+    
         this.checkifAllAdjacentPointsHaveLines();
     }
     checkIfPlayerWon(game, x, y, points2dGrid) {
         const point = points2dGrid.find(point => point.getXCoord() === x && point.getYCoord() === y);
         if (point.isGoalPoint()) {
-            console.log(this.getCurrentPlayerThatsMoving() + " won!");
+            // didnt work before
+            setTimeout(() => {
+                alert(this.getCurrentPlayerThatsMoving() + " won!");
+            }, 0);
             game.initializeScreen();
             return true;
         }
@@ -347,7 +374,7 @@ class Player {
     }
     checkifAllAdjacentPointsHaveLines() {
         const adjacentPoints = this.getValidAdjacentPoints();
-    
+        
         console.log(`Checking lines from adjacent points to player at [${this.x}, ${this.y}]...`);
     
         const allPointsHaveLines = adjacentPoints.every(point => {
@@ -357,7 +384,8 @@ class Player {
         });
     
         if (allPointsHaveLines) {
-            console.log(this.getCurrentPlayerThatsMoving() + " lost! No more moves available.");
+            alert(this.getCurrentPlayerThatsMoving() + " lost! No more moves available.");
+            console.log()
             return true;
         }
         return false;
